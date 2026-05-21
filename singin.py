@@ -1,7 +1,6 @@
 import numpy as np
 import sounddevice as sd
 import librosa
-import threading
 import time
 
 class PitchDetector:
