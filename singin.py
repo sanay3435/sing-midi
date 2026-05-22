@@ -68,18 +68,14 @@ def audio_callback(indata, frames, time_info, status):
 
     audio_chunk = indata[:, 0]
 
-    # -------------------------
-    # VOLUME (RMS)
-    # -------------------------
+    
     current_volume = np.sqrt(np.mean(audio_chunk ** 2))
 
-    # Optional: ignore silence
+ 
     if current_volume < 0.01:
         return
 
-    # -------------------------
-    # PITCH
-    # -------------------------
+
     pitch, confidence = detect_pitch(audio_chunk)
 
     if confidence >= 0.1:
