@@ -3,11 +3,9 @@ import sounddevice as sd
 import librosa
 import time
 
-# Audio settings
 SAMPLE_RATE = 16000
 CHUNK_SIZE = 2048
 
-# Store latest data
 current_pitch = None
 current_confidence = 0.0
 current_volume = 0.0
