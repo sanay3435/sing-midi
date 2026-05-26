@@ -12,9 +12,7 @@ current_volume = 0.0
 
 
 def detect_pitch(audio_chunk):
-    """
-    Detect pitch using librosa's pYIN algorithm
-    """
+  
 
     f0, voiced_flag, voiced_probs = librosa.pyin(
         audio_chunk,
