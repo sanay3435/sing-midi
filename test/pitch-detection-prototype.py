@@ -6,16 +6,21 @@ import keyboard
 
 mute = False
 
+
 SAMPLE_RATE = 16000
-CHUNK_SIZE = 2048
+CHUNK_SIZE = 1024
 
 current_mode = 'single'
 current_pitch = None
 current_confidence = 0.0
 current_volume = 0.0
+current_latency= 0.0
 
 
-def detect_pitch(audio_chunk):
+
+
+
+def detect_pitch_pyin(audio_chunk):
 
 
     f0, voiced_flag, voiced_probs = librosa.pyin(
@@ -37,6 +42,86 @@ def detect_pitch(audio_chunk):
 
     return None, 0.0
 
+def detect_pitch_yin(audio_chunk):
+
+    # remove DC offset
+    audio = audio_chunk - np.mean(audio_chunk)
+
+    # normalize
+    if np.max(np.abs(audio)) < 1e-6:
+        return None, 0.0
+
+    audio = audio / np.max(np.abs(audio))
+
+    # autocorrelation (core idea behind YIN)
+    corr = np.correlate(audio, audio, mode='full')
+    corr = corr[len(corr)//2:]
+
+    # ignore very small lags (high frequencies limit)
+    min_lag = int(SAMPLE_RATE / 1000)   # ~1000 Hz max
+    max_lag = int(SAMPLE_RATE / 80)     # ~80 Hz min
+
+    corr[:min_lag] = 0
+    corr[max_lag:] = 0
+
+    # find best match
+    peak = np.argmax(corr)
+
+    if peak <= 0:
+        return None, 0.0
+
+    frequency = SAMPLE_RATE / peak
+
+    # simple confidence: strength of correlation peak
+    confidence = 1.0
+
+    return float(frequency), confidence
+
+def detect_pitch_mpm(audio_chunk):
+    import numpy as np
+
+    audio = audio_chunk - np.mean(audio_chunk)
+
+    if np.max(np.abs(audio)) < 1e-6:
+        return None, 0.0
+
+    audio = audio / np.max(np.abs(audio))
+
+    # range limits (same idea as your other detector)
+    min_lag = int(SAMPLE_RATE / 1000)   # ~1000 Hz
+    max_lag = int(SAMPLE_RATE / 80)     # ~80 Hz
+
+    best_lag = 0
+    best_score = 0
+
+    # normalized autocorrelation (core MPM idea)
+    for lag in range(min_lag, max_lag):
+        if lag >= len(audio):
+            break
+
+        segment1 = audio[:-lag]
+        segment2 = audio[lag:]
+
+        if len(segment1) == 0:
+            continue
+
+        score = np.dot(segment1, segment2) / len(segment1)
+
+        if score > best_score:
+            best_score = score
+            best_lag = lag
+
+    if best_lag == 0:
+        return None, 0.0
+
+    frequency = SAMPLE_RATE / best_lag
+
+    # binary confidence (your requirement)
+    confidence = 1.0
+
+    return float(frequency), confidence
+
+ACTIVE_DETECTOR = detect_pitch_mpm
 
 def frequency_to_note(frequency):
 
@@ -114,8 +199,14 @@ def audio_callback(indata, frames, time_info, status):
 
     if current_volume < 0.01:
         return
+    
+    global current_latency
 
-    pitch, confidence = detect_pitch(audio_chunk)
+    start = time.perf_counter()
+
+    pitch, confidence = ACTIVE_DETECTOR(audio_chunk)
+
+    current_latency = (time.perf_counter() - start) * 1000
 
     if confidence >= 0.1:
         current_pitch = pitch
@@ -125,8 +216,8 @@ def audio_callback(indata, frames, time_info, status):
 print("Starting pitch detection...")
 print("Press Ctrl+C to stop\n")
 
-print(" Frequency | Note | Confidence | Volume | Harmony | Output")
-print("----------------------------------------------------------")
+print(" Frequency | Note | Confidence | Volume | Harmony | Output | Latency")
+print("--------------------------------------------------------------------")
 
 try:
     with sd.InputStream(
@@ -152,6 +243,7 @@ try:
                         f"{current_volume:.4f} | "
                         f"{current_mode} | "
                         f"{harmony(note,current_mode)} | "
+                        f"{current_latency} ms"
                     )
 
             time.sleep(0.01)
