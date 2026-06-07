@@ -1,25 +1,17 @@
-[Audio Shield (I2S)]
-
-        ↓
-        
-[Teensy Audio Library (DMA)]
-
-        ↓
-        
-[1024-sample ring buffer]
-
-        ↓
-        
-[Pitch Detection (YIN/MPM port)]
-
-        ↓
-        
-[Smoothing + Hysteresis]
-
-        ↓
-        
-[MIDI Note Generator]
-
-        ↓
-        
-[USB MIDI Output]
+Microphone Input
+     ↓
+Frame Buffer (1024 samples @ 16kHz)
+     ↓
+Pitch Detection Engine (YIN / MPM)
+     ↓
+Confidence Filter (voiced/unvoiced gating)
+     ↓
+Frequency Smoothing (EMA)
+     ↓
+Note Mapping (Hz → MIDI float)
+     ↓
+Hysteresis Stabilizer (anti-jitter system)
+     ↓
+MIDI Event Generator
+     ↓
+USB MIDI Output (Teensy 4.1 target)
