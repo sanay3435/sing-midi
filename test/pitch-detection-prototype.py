@@ -123,17 +123,35 @@ def detect_pitch_mpm(audio_chunk):
 
 ACTIVE_DETECTOR = detect_pitch_pyin
 
+last_midi = None
+
 def frequency_to_note(frequency):
+    global last_midi
 
     if frequency is None or frequency <= 0:
         return "---"
 
-    midi = round(69 + 12 * np.log2(frequency / 440.0))
+    midi_float = 69 + 12 * np.log2(frequency / 440.0)
 
     notes = [
         "C", "C#", "D", "D#", "E", "F",
         "F#", "G", "G#", "A", "A#", "B"
     ]
+
+    base_midi = round(midi_float)
+
+    if last_midi is None:
+        last_midi = base_midi
+
+    lower_bound = last_midi - 0.35
+    upper_bound = last_midi + 0.65
+
+    if midi_float > upper_bound:
+        last_midi += 1
+    elif midi_float < lower_bound:
+        last_midi -= 1
+
+    midi = last_midi
 
     note_name = notes[midi % 12]
     octave = (midi // 12) - 1
