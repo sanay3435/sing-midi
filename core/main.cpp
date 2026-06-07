@@ -1,6 +1,6 @@
 #include <iostream>
-#include "dsp/pitch.h"
-#include "filters/hysteresis.h"
+#include "../dsp/pitch.h"
+#include "../filters/hysteresis.h"
 
 #define N 1024
 
