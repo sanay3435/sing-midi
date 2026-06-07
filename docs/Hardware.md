@@ -1,4 +1,4 @@
-I will be making a small Aluminium Box type of structure,
+I will be making a small 3d printed Box type of structure,
 one midi and power port,
 one microphone jack,
 6 harmony mode buttons,
